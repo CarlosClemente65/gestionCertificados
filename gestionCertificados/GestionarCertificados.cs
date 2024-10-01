@@ -6,18 +6,19 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
 
-namespace GestionDigitalCert
+namespace GestionCertificadosDigitales
 {
-    public class ListaInfoCertificados
+    public class Certificados
     {
-        public List<ElementosCertificado> certificadosInfo { get; set; }
+        //Clase que engloba las propiedades de los certificados
+        public List<PropiedadesCertificados> propiedadesCertificado { get; set; }
 
-        public ListaInfoCertificados()
+        public Certificados()
         {
-            certificadosInfo = new List<ElementosCertificado>();
+            propiedadesCertificado = new List<PropiedadesCertificados>();
         }
     }
-    public class ElementosCertificado
+    public class PropiedadesCertificados
     {
         //Clase que representa las propiedades de los certificados que necesitamos
         public string nifCertificado { get; set; }
@@ -44,13 +45,13 @@ namespace GestionDigitalCert
 
         public string nombreRepresentante { get; set; }
 
-        public string datosRepresentante { get; set; }
+        public string nombreCertificado { get; set; }
 
         public string huellaCertificado { get; set; }
 
         public string passwordCertificado { get; set; }
 
-        public ElementosCertificado()
+        public PropiedadesCertificados()
         {
             nifCertificado = string.Empty;
             titularCertificado = string.Empty;
@@ -59,7 +60,7 @@ namespace GestionDigitalCert
             fechaValidez = DateTime.MinValue;
             nifRepresentante = string.Empty;
             nombreRepresentante = string.Empty;
-            datosRepresentante = string.Empty;
+            nombreCertificado = string.Empty;
             passwordCertificado = string.Empty;
             huellaCertificado = string.Empty;
         }
@@ -70,16 +71,21 @@ namespace GestionDigitalCert
     {
         //Clase que engloba la gestion de certificados
 
-        private List<X509Certificate2> certificadosDigitales; //Lista que contiene los certificados
-        private ListaInfoCertificados listaCertificados = new ListaInfoCertificados();
+        private List<X509Certificate2> certificadosDigitales; //Lista que contiene los certificados digitales
+        private Certificados datosCertificados = new Certificados(); //Lista que contiene las propiedades de los certificados
 
         public GestionarCertificados()
         {
-            //Al instanciar esta clase, se crea una nueva lista de certificados
             //En los metodos que instancien esta clase deben hacer expresamente la carga de los certificado digitales en las dos listas con el metodo 'cargarCertificadosAlmacen()'.
+
+            //Al instanciar esta clase, se crea una nueva lista de certificados
             certificadosDigitales = new List<X509Certificate2>();
         }
 
+
+        /// <summary>
+        /// Proceso de lectura de los certificados instalados en el almacen del usuario, para poder usarlos en otros metodos
+        /// </summary>
         public void cargarCertificadosAlmacen()
         {
             //Se chequea si ya se ha cargado la lista de certificados para no hacerlo de nuevo
@@ -105,21 +111,26 @@ namespace GestionDigitalCert
                     {
                         //En el Subject estan todos los datos del certificado
                         string datosSubject = certificado.Subject;
-                        ElementosCertificado info = new ElementosCertificado
+                        PropiedadesCertificados propiedadesCertificado = new PropiedadesCertificados
                         {
                             serieCertificado = certificado.SerialNumber,
                             fechaValidez = certificado.NotAfter,
                             fechaEmision = certificado.NotBefore,
                             huellaCertificado = certificado.Thumbprint.ToString()
                         };
-                        obtenerDatosSubject(datosSubject, info);
-                        listaCertificados.certificadosInfo.Add(info);
+                        obtenerDatosSubject(datosSubject, propiedadesCertificado);
+                        datosCertificados.propiedadesCertificado.Add(propiedadesCertificado);
                     }
                 }
             }
         }
 
-        public void obtenerDatosSubject(string subject, ElementosCertificado info)
+        /// <summary>
+        /// Permite obtener las propiedades de los certificados que estan almacenadas en el campo 'Subject'
+        /// </summary>
+        /// <param name="subject">Contenido del subject del certificado digital</param>
+        /// <param name="propiedadesCertificado">Propiedades del certificado que ya se han procesado en la carga de certificados</param>
+        public void obtenerDatosSubject(string subject, PropiedadesCertificados propiedadesCertificado)
         {
             //Carga los datos del certificado en las propiedades de la clase
             bool juridica = false;
@@ -174,7 +185,7 @@ namespace GestionDigitalCert
                         {
                             if (juridica)
                             {
-                                info.nifRepresentante = buscaNif.Value;
+                                propiedadesCertificado.nifRepresentante = buscaNif.Value;
                             }
                             else
                             {
@@ -195,41 +206,47 @@ namespace GestionDigitalCert
                         }
                         break;
 
-                    case "CN": //Datos representante
+                    case "CN": //Nombre certificado
                         if (juridica)
                         {
-                            info.datosRepresentante = valor;
+                            propiedadesCertificado.nombreCertificado = valor;
                         }
                         break;
                 }
 
-                if (string.IsNullOrEmpty(info.nifCertificado)) info.nifCertificado = nifCertificado;
-                if (string.IsNullOrEmpty(info.titularCertificado) || string.IsNullOrEmpty(info.nombreRepresentante))
+                if (string.IsNullOrEmpty(propiedadesCertificado.nifCertificado)) propiedadesCertificado.nifCertificado = nifCertificado;
+                if (string.IsNullOrEmpty(propiedadesCertificado.titularCertificado) || string.IsNullOrEmpty(propiedadesCertificado.nombreRepresentante))
                 {
                     if (juridica)
                     {
-                        info.titularCertificado = nombrePJ;
+                        propiedadesCertificado.titularCertificado = nombrePJ;
                         if (!string.IsNullOrEmpty(nombreRepresentante))
                         {
-                            info.nombreRepresentante = apellidoRepresentante + " " + nombreRepresentante;
+                            propiedadesCertificado.nombreRepresentante = apellidoRepresentante + " " + nombreRepresentante;
                         }
                     }
                     else
                     {
-                        info.titularCertificado = apellidoPF + " " + nombrePF;
+                        propiedadesCertificado.titularCertificado = apellidoPF + " " + nombrePF;
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Obtiene el numero de serie de un certificado buscando en el numero de serie, NIF o nombre del titular
+        /// </summary>
+        /// <param name="textoBusqueda">Texto a buscar</param>
+        /// <returns>Numero de serie del certificado encontrado o un texto vacio en caso contrario</returns>
         public string buscarCertificado(string textoBusqueda)
         {
-            //Devuelve el numero de serie del certificado que contiene el texto a buscar en el NIF o nombre del titular
+            //Nota: aunque se devuelve el nº de serie, se puede hacer la busqueda por ese campo para controlar si existe el certificado)
 
             string resultadoBusqueda = string.Empty;
-            var buscaCertificado = listaCertificados.certificadosInfo.Find(cert =>
+            var buscaCertificado = datosCertificados.propiedadesCertificado.Find(cert =>
                 cert.nifCertificado.Contains(textoBusqueda) ||
-                cert.titularCertificado.Contains(textoBusqueda)
+                cert.titularCertificado.Contains(textoBusqueda) ||
+                cert.serieCertificado.Contains(textoBusqueda)
                 );
             if (buscaCertificado != null)
             {
@@ -239,120 +256,130 @@ namespace GestionDigitalCert
             return resultadoBusqueda;
         }
 
-        public List<ElementosCertificado> relacionCertificados()
+        /// <summary>
+        /// Obtiene una relacion de los certificados con sus propiedades 
+        /// </summary>
+        /// <returns>Lista de certificados y sus propiedades</returns>
+        public List<PropiedadesCertificados> relacionCertificados()
         {
             //Devuelve la lista con los datos de los certificados
-            return listaCertificados.certificadosInfo;
+            return datosCertificados.propiedadesCertificado;
         }
 
-        public List<ElementosCertificado> ordenarCertificados(string campoOrdenacion, bool ascendente)
+
+        /// <summary>
+        /// Obtiene una relacion de los certificados ordenados por el campo y orden especificado
+        /// </summary>
+        /// <param name="campoOrdenacion">Campo por el que se va a ordenar la lista (utiliza el enum 'CampoOrdenacion')</param>
+        /// <param name="ascendente">'True' para ascendente, 'False' para descendente</param>
+        /// <returns>Lista de certificados ordenada</returns>
+        public List<PropiedadesCertificados> ordenarCertificados(CampoOrdenacion campoOrdenacion, bool ascendente)
         {
-            List<ElementosCertificado> certificados = listaCertificados.certificadosInfo;
-            //Devuelve la lista de los certificados ordenados por el campo pasado y en orden ascendente/descedente
+            List<PropiedadesCertificados> certificados = datosCertificados.propiedadesCertificado;
             if (certificados == null || certificados.Count == 0)
             {
                 //Evita que se produzca una excepcion si no hay certificados cargados en la lista
-                return listaCertificados.certificadosInfo;
+                return datosCertificados.propiedadesCertificado;
             }
 
             switch (campoOrdenacion)
             {
-                case "nifCertificado":
+                case CampoOrdenacion.nifCertificado:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.nifCertificado).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nifCertificado).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.nifCertificado).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.nifCertificado).ToList());
                     }
                     break;
 
-                case "titularCertificado":
+                case CampoOrdenacion.titularCertificado:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.titularCertificado).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.titularCertificado).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.titularCertificado).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.titularCertificado).ToList());
                     }
                     break;
 
-                case "fechaValidez":
+                case CampoOrdenacion.fechaValidez:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.fechaValidez).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.fechaValidez).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.fechaValidez).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.fechaValidez).ToList());
                     }
                     break;
 
-                case "fechaEmision":
+                case CampoOrdenacion.fechaEmision:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.fechaEmision).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.fechaEmision).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.fechaEmision).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.fechaEmision).ToList());
                     }
                     break;
 
-                case "nifRepresentante":
+                case CampoOrdenacion.nifRepresentante:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.nifRepresentante).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nifRepresentante).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.nifRepresentante).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.nifRepresentante).ToList());
                     }
                     break;
 
-                case "nombreRepresentante":
+                case CampoOrdenacion.nombreRepresentante:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.nombreRepresentante).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nombreRepresentante).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.nombreRepresentante).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.nombreRepresentante).ToList());
                     }
                     break;
 
-                case "datosRepresentante":
+                case CampoOrdenacion.nombreCertificado:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.datosRepresentante).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nombreCertificado).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.datosRepresentante).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.nombreCertificado).ToList());
                     }
                     break;
 
-                case "serieCertificado":
+                case CampoOrdenacion.serieCertificado:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.serieCertificado).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.serieCertificado).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.serieCertificado).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.serieCertificado).ToList());
                     }
                     break;
 
-                case "huellaCertificado":
+                case CampoOrdenacion.huellaCertificado:
                     if (ascendente)
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderBy(certificado => certificado.huellaCertificado).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.huellaCertificado).ToList());
                     }
                     else
                     {
-                        certificados = new List<ElementosCertificado>(certificados.OrderByDescending(certificado => certificado.huellaCertificado).ToList());
+                        certificados = new List<PropiedadesCertificados>(certificados.OrderByDescending(certificado => certificado.huellaCertificado).ToList());
                     }
                     break;
 
@@ -361,22 +388,48 @@ namespace GestionDigitalCert
 
         }
 
-        public List<ElementosCertificado> filtrarCertificados(string filtro)
+        /// <summary>
+        /// Obtiene una relacion de certificados filtrada por el campo 'titularCertificado' segun el texto pasado
+        /// </summary>
+        /// <param name="filtro">Texto a buscar</param>
+        /// <returns>Lista de certificados filtrada</returns>
+        public List<PropiedadesCertificados> filtrarCertificadosNombre(string filtro)
         {
-            //Devuelve la lista de certificados filtrada por el texto pasado
-            List<ElementosCertificado> certificados = listaCertificados.certificadosInfo;
+            List<PropiedadesCertificados> certificados = datosCertificados.propiedadesCertificado;
             if (!string.IsNullOrEmpty(filtro))
             {
                 filtro = filtro.ToUpper();
-                certificados = new List<ElementosCertificado>(certificados.FindAll(certificado => certificado.titularCertificado.ToUpper().Contains(filtro)));
+                certificados = new List<PropiedadesCertificados>(certificados.FindAll(certificado => certificado.titularCertificado.ToUpper().Contains(filtro)));
             }
             return certificados;
         }
 
+
+        /// <summary>
+        /// Obtiene una relacion de certificados filtrada por el campo 'nifCertificado' segun el texto pasado
+        /// </summary>
+        /// <param name="filtro">Texto a buscar</param>
+        /// <returns>Lista de certificados filtrada</returns>
+        public List<PropiedadesCertificados> filtrarCertificadosNif(string filtro)
+        {
+            List<PropiedadesCertificados> certificados = datosCertificados.propiedadesCertificado;
+            if (!string.IsNullOrEmpty(filtro))
+            {
+                filtro = filtro.ToUpper();
+                certificados = new List<PropiedadesCertificados>(certificados.FindAll(certificado => certificado.nifCertificado.ToUpper().Contains(filtro)));
+            }
+            return certificados;
+        }
+
+
+        /// <summary>
+        /// Permite leer las propiedades de un certificado pasado como fichero
+        /// </summary>
+        /// <param name="fichero">Ruta del fichero a leer</param>
+        /// <param name="password">Contraseña del certificado (necesaria para acceder a los datos)</param>
+        /// <returns>OK si la lectura es correcta o errores que se han producido, ademas de un true o false con el resultado de la lectura</returns>
         public (string, bool) leerCertificado(string fichero, string password)
         {
-            //Permite leer los datos de un certificado que se pase como fichero
-
             //Se devuelve un mensaje con un OK o el error al leer el fichero, y un true o false.
             string mensaje = string.Empty;
             bool respuesta = false;
@@ -385,7 +438,7 @@ namespace GestionDigitalCert
             if (certificadosDigitales.Count > 0)
             {
                 certificadosDigitales.Clear();
-                listaCertificados.certificadosInfo.Clear();
+                datosCertificados.propiedadesCertificado.Clear();
             }
 
             try
@@ -399,16 +452,16 @@ namespace GestionDigitalCert
                     {
                         //En el Subject estan todos los datos del certificado
                         string datosSubject = cert.Subject;
-                        ElementosCertificado info = new ElementosCertificado
+                        PropiedadesCertificados propiedadesCertificado = new PropiedadesCertificados
                         {
-                            serieCertificado = cert.SerialNumber,
                             fechaValidez = cert.NotAfter,
                             fechaEmision = certificado.NotBefore,
-                            passwordCertificado = password,
-                            huellaCertificado = cert.Thumbprint.ToString()
+                            serieCertificado = cert.SerialNumber,
+                            huellaCertificado = cert.Thumbprint.ToString(),
+                            passwordCertificado = password
                         };
-                        obtenerDatosSubject(datosSubject, info);
-                        listaCertificados.certificadosInfo.Add(info);
+                        obtenerDatosSubject(datosSubject, propiedadesCertificado);
+                        datosCertificados.propiedadesCertificado.Add(propiedadesCertificado);
 
                     }
                 }
@@ -425,9 +478,12 @@ namespace GestionDigitalCert
             }
         }
 
-        public (string, bool) exportarDatosCertificados()
+        /// <summary>
+        /// Permite obtener las propiedades de los certificados para poder exportarlos a un fichero
+        /// </summary>
+        /// <returns>Texto con formato Json con las propiedades de los certificados, 'true' si se han podido obtener los datos o 'false' en caso contrario</returns>
+        public (string, bool) exportarPropiedadesCertificados()
         {
-            //Devuelve un json con los datos de los certificados o el mensaje de error, y un true o false con el resultado de la lectura.
             try
             {
                 // Serializar la lista de ficheros a JSON
@@ -438,7 +494,7 @@ namespace GestionDigitalCert
                     DateFormatString = "dd/MM/yyyy" //Formato de fecha
                 };
 
-                string jsonSalida = JsonConvert.SerializeObject(listaCertificados, opciones);
+                string jsonSalida = JsonConvert.SerializeObject(datosCertificados, opciones);
 
                 return (jsonSalida, true);
             }
@@ -450,6 +506,13 @@ namespace GestionDigitalCert
             }
         }
 
+
+        /// <summary>
+        /// Permite exportar un certificado digital en base64
+        /// </summary>
+        /// <param name="ruta">Ruta del fichero que se quiere pasar a base64</param>
+        /// <param name="password">Contraseña del certificado digital</param>
+        /// <returns>Cadena de caracteres en base64 que representa el certificado digital, o mensaje de error si no se ha podido convertir, asi como un true o false con el resultado de la conversion</returns>
         public (string, bool) exportaCertificadoB64(string ruta, string password)
         {
             //Permite exportar un certificado pasado desde un fichero a base64. Se pasa la ruta de ubicacion del fichero con el certificado y el password (necesario para acceder a los datos)
@@ -473,6 +536,12 @@ namespace GestionDigitalCert
 
         }
 
+
+        /// <summary>
+        /// Obtiene un certificado digital segun el numero de serie pasado
+        /// </summary>
+        /// <param name="serieCertificado">Numero de serie del certificado a obtener</param>
+        /// <returns>Certificado digital</returns>
         public (X509Certificate2, bool) exportaCertificadoDigital(string serieCertificado)
         {
             //Devuelve el certificado digital que tenga el numero de serie se haya pasado por parametro; si no lo encuentra devuelve null
@@ -485,6 +554,19 @@ namespace GestionDigitalCert
             }
             return (certificado, respuesta);
 
+        }
+
+        public enum CampoOrdenacion
+        {
+            nifCertificado,
+            titularCertificado,
+            serieCertificado,
+            fechaEmision,
+            fechaValidez,
+            nifRepresentante,
+            nombreRepresentante,
+            nombreCertificado,
+            huellaCertificado
         }
     }
 
