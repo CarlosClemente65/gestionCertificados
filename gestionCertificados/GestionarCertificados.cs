@@ -70,20 +70,20 @@ namespace GestionDigitalCert
     {
         //Clase que engloba la gestion de certificados
 
-        private List<X509Certificate2> certificados; //Lista que contiene los certificados
+        private List<X509Certificate2> certificadosDigitales; //Lista que contiene los certificados
         private ListaInfoCertificados listaCertificados = new ListaInfoCertificados();
 
         public GestionarCertificados()
         {
-            //Al instanciar esta clase, se crea una nueva lista de certificados y se cargan los que estan instalados en la maquina.
-            certificados = new List<X509Certificate2>();
-            cargarCertificados();
+            //Al instanciar esta clase, se crea una nueva lista de certificados
+            //En los metodos que instancien esta clase deben hacer expresamente la carga de los certificado digitales en las dos listas con el metodo 'cargarCertificadosAlmacen()'.
+            certificadosDigitales = new List<X509Certificate2>();
         }
 
-        public void cargarCertificados()
+        public void cargarCertificadosAlmacen()
         {
             //Se chequea si ya se ha cargado la lista de certificados para no hacerlo de nuevo
-            if (certificados.Count == 0)
+            if (certificadosDigitales.Count == 0)
             {
                 //Metodo para cargar los certificados del almacen de windows
                 X509Store almacen = new X509Store(StoreLocation.CurrentUser);
@@ -93,13 +93,13 @@ namespace GestionDigitalCert
                     //Solo se cargan los certificados no caducados
                     if (certificado.NotAfter >= DateTime.Now)
                     {
-                        certificados.Add(certificado);
+                        certificadosDigitales.Add(certificado);
                     }
                 }
                 almacen.Close();
 
                 // Graba las propiedades de los certificados en la clase ListaCertificados
-                foreach (X509Certificate2 certificado in certificados)
+                foreach (X509Certificate2 certificado in certificadosDigitales)
                 {
                     if (certificado.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
                     {
@@ -119,15 +119,117 @@ namespace GestionDigitalCert
             }
         }
 
+        public void obtenerDatosSubject(string subject, ElementosCertificado info)
+        {
+            //Carga los datos del certificado en las propiedades de la clase
+            bool juridica = false;
+            if (subject.Contains("2.5.4.97")) juridica = true;
+            string nombrePF = string.Empty; ;
+            string apellidoPF = string.Empty;
+            string nombrePJ = string.Empty;
+            string nombreRepresentante = string.Empty;
+            string apellidoRepresentante = string.Empty;
+            string nifCertificado = string.Empty;
+            string patronNif = @"\b(?=(?:\w*[A-Z]){1,2})(?=(?:\w*\d){2,})\w{9}\b"; //Patron de NIF
+
+            string[] partes = subject.Split(',');
+            foreach (string parte in partes)
+            {
+                string[] elementos = parte.Trim().Split('=');
+                string elemento = string.Empty;
+                string valor = string.Empty;
+                if (elementos.Length == 2)
+                {
+                    elemento = elementos[0];
+                    valor = elementos[1];
+                }
+
+                switch (elemento)
+                {
+                    case "G": //Nombre del titular del certificado o del representante si es juridica
+                        if (juridica)
+                        {
+                            nombreRepresentante = valor;
+                        }
+                        else
+                        {
+                            nombrePF = valor;
+                        }
+                        break;
+
+                    case "SN": //Apellido del titular del certificado o del representante si es juridica
+                        if (juridica)
+                        {
+                            apellidoRepresentante = valor;
+                        }
+                        else
+                        {
+                            apellidoPF = valor;
+                        }
+                        break;
+
+                    case "SERIALNUMBER": //NIF del titular del certificado o del representante si es juridica
+                        Match buscaNif = Regex.Match(valor, patronNif);
+                        if (buscaNif.Success)
+                        {
+                            if (juridica)
+                            {
+                                info.nifRepresentante = buscaNif.Value;
+                            }
+                            else
+                            {
+                                nifCertificado = buscaNif.Value;
+                            }
+                        }
+                        break;
+
+                    case "O": //Nombre de la sociedad
+                        nombrePJ = valor;
+                        break;
+
+                    case "OID.2.5.4.97": //NIF de la sociedad
+                        Match buscaCIF = Regex.Match(valor, patronNif);
+                        if (buscaCIF.Success)
+                        {
+                            nifCertificado = buscaCIF.Value;
+                        }
+                        break;
+
+                    case "CN": //Datos representante
+                        if (juridica)
+                        {
+                            info.datosRepresentante = valor;
+                        }
+                        break;
+                }
+
+                if (string.IsNullOrEmpty(info.nifCertificado)) info.nifCertificado = nifCertificado;
+                if (string.IsNullOrEmpty(info.titularCertificado) || string.IsNullOrEmpty(info.nombreRepresentante))
+                {
+                    if (juridica)
+                    {
+                        info.titularCertificado = nombrePJ;
+                        if (!string.IsNullOrEmpty(nombreRepresentante))
+                        {
+                            info.nombreRepresentante = apellidoRepresentante + " " + nombreRepresentante;
+                        }
+                    }
+                    else
+                    {
+                        info.titularCertificado = apellidoPF + " " + nombrePF;
+                    }
+                }
+            }
+        }
+
         public string buscarCertificado(string textoBusqueda)
         {
-            //Devuelve el certificado que contiene el texto a buscar en la serie, el NIF o nombre del titular
+            //Devuelve el numero de serie del certificado que contiene el texto a buscar en el NIF o nombre del titular
 
             string resultadoBusqueda = string.Empty;
             var buscaCertificado = listaCertificados.certificadosInfo.Find(cert =>
                 cert.nifCertificado.Contains(textoBusqueda) ||
-                cert.titularCertificado.Contains(textoBusqueda) ||
-                cert.serieCertificado == textoBusqueda
+                cert.titularCertificado.Contains(textoBusqueda)
                 );
             if (buscaCertificado != null)
             {
@@ -271,125 +373,27 @@ namespace GestionDigitalCert
             return certificados;
         }
 
-        public void obtenerDatosSubject(string subject, ElementosCertificado info)
-        {
-            //Carga los datos del certificado en las propiedades de la clase
-            bool juridica = false;
-            if (subject.Contains("2.5.4.97")) juridica = true;
-            string nombrePF = string.Empty; ;
-            string apellidoPF = string.Empty;
-            string nombrePJ = string.Empty;
-            string nombreRepresentante = string.Empty;
-            string apellidoRepresentante = string.Empty;
-            string nifCertificado = string.Empty;
-
-
-            string[] partes = subject.Split(',');
-            foreach (string parte in partes)
-            {
-                string[] elementos = parte.Trim().Split('=');
-                string elemento = string.Empty;
-                string valor = string.Empty;
-                if (elementos.Length == 2)
-                {
-                    elemento = elementos[0];
-                    valor = elementos[1];
-                }
-
-                switch (elemento)
-                {
-                    case "G": //Nombre del titular del certificado o del representante si es juridica
-                        if (juridica)
-                        {
-                            nombreRepresentante = valor;
-                        }
-                        else
-                        {
-                            nombrePF = valor;
-                        }
-                        break;
-
-                    case "SN": //Apellido del titular del certificado o del representante si es juridica
-                        if (juridica)
-                        {
-                            apellidoRepresentante = valor;
-                        }
-                        else
-                        {
-                            apellidoPF = valor;
-                        }
-                        break;
-
-                    case "SERIALNUMBER": //NIF del titular del certificado o del representante si es juridica
-                        //Patron de NIF
-                        string patron = @"\b(?=(?:\w*[A-Z]){1,2})(?=(?:\w*\d){2,})\w{9}\b";
-                        Match match = Regex.Match(valor, patron);
-                        if (match.Success)
-                        {
-                            string valorExtraido = match.Value;
-                            if (juridica)
-                            {
-                                info.nifRepresentante = valorExtraido;
-                            }
-                            else
-                            {
-                                nifCertificado = valorExtraido;
-                            }
-                        }
-                        break;
-
-                    case "O": //Nombre de la sociedad
-                        nombrePJ = valor;
-                        break;
-
-                    case "OID.2.5.4.97": //NIF de la sociedad
-                        nifCertificado = valor.Substring(6);
-                        break;
-
-                    case "CN": //Datos representante
-                        if (juridica)
-                        {
-                            info.datosRepresentante = valor;
-                        }
-                        break;
-                }
-
-                if (string.IsNullOrEmpty(info.nifCertificado)) info.nifCertificado = nifCertificado;
-                if (string.IsNullOrEmpty(info.titularCertificado) || string.IsNullOrEmpty(info.nombreRepresentante))
-                {
-                    if (juridica)
-                    {
-                        info.titularCertificado = nombrePJ;
-                        if (!string.IsNullOrEmpty(nombreRepresentante))
-                        {
-                            info.nombreRepresentante = apellidoRepresentante + " " + nombreRepresentante;
-                        }
-                    }
-                    else
-                    {
-                        info.titularCertificado = apellidoPF + " " + nombrePF;
-                    }
-                }
-            }
-        }
-
-        public string leerCertificado(string fichero, string password)
+        public (string, bool) leerCertificado(string fichero, string password)
         {
             //Permite leer los datos de un certificado que se pase como fichero
 
+            //Se devuelve un mensaje con un OK o el error al leer el fichero, y un true o false.
+            string mensaje = string.Empty;
+            bool respuesta = false;
+
             //Como se pasa el certificado como fichero, se borran los certificados que hay en la lista para que solo aparezca el que se ha pasado
-            if (certificados.Count > 0)
+            if (certificadosDigitales.Count > 0)
             {
-                certificados.Clear();
+                certificadosDigitales.Clear();
                 listaCertificados.certificadosInfo.Clear();
             }
 
             try
             {
                 X509Certificate2 certificado = new X509Certificate2(fichero, password);
-                certificados.Add(certificado);
-                // Graba las propiedades de los certificados en la clase certificadosInfo
-                foreach (X509Certificate2 cert in certificados)
+                certificadosDigitales.Add(certificado);
+                // Graba las propiedades del certificado en la clase certificadosInfo
+                foreach (X509Certificate2 cert in certificadosDigitales)
                 {
                     if (cert.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
                     {
@@ -408,19 +412,22 @@ namespace GestionDigitalCert
 
                     }
                 }
-                return string.Empty;
+                mensaje = "OK";
+                respuesta = true;
+                return (mensaje, respuesta);
             }
 
             catch (Exception ex)
             {
-                return ex.Message;
+                mensaje = $"No se ha podido leer el certificado. {ex.Message}";
+                respuesta = false;
+                return (mensaje, respuesta);
             }
         }
 
-
         public (string, bool) exportarDatosCertificados()
         {
-            //Devuelve un json con los datos de los certificados
+            //Devuelve un json con los datos de los certificados o el mensaje de error, y un true o false con el resultado de la lectura.
             try
             {
                 // Serializar la lista de ficheros a JSON
@@ -441,6 +448,43 @@ namespace GestionDigitalCert
                 string mensaje = $"No se ha podido grabar los datos de los certificados. {ex.Message}";
                 return (mensaje, false);
             }
+        }
+
+        public (string, bool) exportaCertificadoB64(string ruta, string password)
+        {
+            //Permite exportar un certificado pasado desde un fichero a base64. Se pasa la ruta de ubicacion del fichero con el certificado y el password (necesario para acceder a los datos)
+            try
+            {
+                X509Certificate2 certificado = new X509Certificate2(ruta, password);
+
+                // Obtener los datos en formato binario (byte array) del certificado
+                byte[] datosCertificado = certificado.Export(X509ContentType.Cert);
+
+                // Convertir los datos a Base64
+                string certificadoBase64 = Convert.ToBase64String(datosCertificado);
+
+                return (certificadoBase64, true);
+            }
+            catch (Exception ex)
+            {
+                string mensaje = $"No se ha podido leer el certificado. {ex.Message}";
+                return (mensaje, false);
+            }
+
+        }
+
+        public (X509Certificate2, bool) exportaCertificadoDigital(string serieCertificado)
+        {
+            //Devuelve el certificado digital que tenga el numero de serie se haya pasado por parametro; si no lo encuentra devuelve null
+            bool respuesta = false;
+
+            X509Certificate2 certificado = certificadosDigitales.Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
+            if (certificado != null)
+            {
+                respuesta = true;
+            }
+            return (certificado, respuesta);
+
         }
     }
 
