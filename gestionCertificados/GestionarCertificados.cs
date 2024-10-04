@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -554,6 +555,26 @@ namespace GestionCertificadosDigitales
             }
             return (certificado, respuesta);
 
+        }
+
+        /// <summary>
+        /// Obtiene el valor de una propiedad del certificado
+        /// </summary>
+        /// <param name="nombrePropiedad">Nombre de la propiedad a consultar (utiliza el enum 'CampoOrdenacion')</param>
+        /// <returns>Valor almacenado en la propiedad</returns>
+        public string consultaPropiedades (string nombrePropiedad)
+        {
+            string valorPropiedad = string.Empty;
+            foreach (var certificado in datosCertificados.propiedadesCertificado)
+            {
+                PropertyInfo propiedad = certificado.GetType().GetProperty(nombrePropiedad);
+                if (propiedad != null)
+                {
+                    valorPropiedad = propiedad.GetValue(certificado).ToString();
+                }
+            }
+
+            return valorPropiedad;
         }
 
         public enum CampoOrdenacion
