@@ -428,11 +428,12 @@ namespace GestionCertificadosDigitales
         /// </summary>
         /// <param name="fichero">Ruta del fichero a leer</param>
         /// <param name="password">Contraseña del certificado (necesaria para acceder a los datos)</param>
-        /// <returns>OK si la lectura es correcta o errores que se han producido, ademas de un true o false con el resultado de la lectura</returns>
-        public (string, bool) leerCertificado(string fichero, string password)
+        /// <returns>Serie del certificado, OK si la lectura es correcta o errores que se han producido, ademas de un true o false con el resultado de la lectura</returns>
+        public (string, string, bool) leerCertificado(string fichero, string password)
         {
             //Se devuelve un mensaje con un OK o el error al leer el fichero, y un true o false.
             string mensaje = string.Empty;
+            string serieCertificado = string.Empty;
             bool respuesta = false;
 
             //Como se pasa el certificado como fichero, se borran los certificados que hay en la lista para que solo aparezca el que se ha pasado
@@ -444,7 +445,7 @@ namespace GestionCertificadosDigitales
 
             try
             {
-                X509Certificate2 certificado = new X509Certificate2(fichero, password);
+                X509Certificate2 certificado = new X509Certificate2(fichero, password, X509KeyStorageFlags.Exportable);
                 certificadosDigitales.Add(certificado);
                 // Graba las propiedades del certificado en la clase certificadosInfo
                 foreach (X509Certificate2 cert in certificadosDigitales)
@@ -461,21 +462,21 @@ namespace GestionCertificadosDigitales
                             huellaCertificado = cert.Thumbprint.ToString(),
                             passwordCertificado = password
                         };
+                        serieCertificado = propiedadesCertificado.serieCertificado;
                         obtenerDatosSubject(datosSubject, propiedadesCertificado);
                         datosCertificados.propiedadesCertificado.Add(propiedadesCertificado);
-
                     }
                 }
                 mensaje = "OK";
                 respuesta = true;
-                return (mensaje, respuesta);
+                return (mensaje, serieCertificado, respuesta);
             }
 
             catch (Exception ex)
             {
                 mensaje = $"No se ha podido leer el certificado. {ex.Message}";
                 respuesta = false;
-                return (mensaje, respuesta);
+                return (mensaje, serieCertificado, respuesta);
             }
         }
 
@@ -519,10 +520,10 @@ namespace GestionCertificadosDigitales
             //Permite exportar un certificado pasado desde un fichero a base64. Se pasa la ruta de ubicacion del fichero con el certificado y el password (necesario para acceder a los datos)
             try
             {
-                X509Certificate2 certificado = new X509Certificate2(ruta, password);
+                X509Certificate2 certificado = new X509Certificate2(ruta, password, X509KeyStorageFlags.Exportable);
 
                 // Obtener los datos en formato binario (byte array) del certificado
-                byte[] datosCertificado = certificado.Export(X509ContentType.Cert);
+                byte[] datosCertificado = certificado.Export(X509ContentType.Pfx,password);
 
                 // Convertir los datos a Base64
                 string certificadoBase64 = Convert.ToBase64String(datosCertificado);
