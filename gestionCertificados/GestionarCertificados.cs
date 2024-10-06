@@ -201,7 +201,7 @@ namespace GestionCertificadosDigitales
                         break;
 
                     case "CN": //Nombre certificado
-                            propiedadesCertificado.nombreCertificado = valor;
+                        propiedadesCertificado.nombreCertificado = valor;
                         break;
                 }
 
@@ -264,7 +264,7 @@ namespace GestionCertificadosDigitales
         /// <param name="campoOrdenacion">Campo por el que se va a ordenar la lista (utiliza el enum 'CampoOrdenacion')</param>
         /// <param name="ascendente">'True' para ascendente, 'False' para descendente</param>
         /// <returns>Lista de certificados ordenada</returns>
-        public List<PropiedadesCertificados> ordenarCertificados(CampoOrdenacion campoOrdenacion, bool ascendente)
+        public List<PropiedadesCertificados> ordenarCertificados(nombresPropiedades campoOrdenacion, bool ascendente)
         {
             List<PropiedadesCertificados> certificados = datosCertificados.propiedadesCertificado;
             if (certificados == null || certificados.Count == 0)
@@ -275,7 +275,7 @@ namespace GestionCertificadosDigitales
 
             switch (campoOrdenacion)
             {
-                case CampoOrdenacion.nifCertificado:
+                case nombresPropiedades.nifCertificado:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nifCertificado).ToList());
@@ -286,7 +286,7 @@ namespace GestionCertificadosDigitales
                     }
                     break;
 
-                case CampoOrdenacion.titularCertificado:
+                case nombresPropiedades.titularCertificado:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.titularCertificado).ToList());
@@ -297,7 +297,7 @@ namespace GestionCertificadosDigitales
                     }
                     break;
 
-                case CampoOrdenacion.fechaValidez:
+                case nombresPropiedades.fechaValidez:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.fechaValidez).ToList());
@@ -308,7 +308,7 @@ namespace GestionCertificadosDigitales
                     }
                     break;
 
-                case CampoOrdenacion.fechaEmision:
+                case nombresPropiedades.fechaEmision:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.fechaEmision).ToList());
@@ -319,7 +319,7 @@ namespace GestionCertificadosDigitales
                     }
                     break;
 
-                case CampoOrdenacion.nifRepresentante:
+                case nombresPropiedades.nifRepresentante:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nifRepresentante).ToList());
@@ -330,7 +330,7 @@ namespace GestionCertificadosDigitales
                     }
                     break;
 
-                case CampoOrdenacion.nombreRepresentante:
+                case nombresPropiedades.nombreRepresentante:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nombreRepresentante).ToList());
@@ -341,7 +341,7 @@ namespace GestionCertificadosDigitales
                     }
                     break;
 
-                case CampoOrdenacion.nombreCertificado:
+                case nombresPropiedades.nombreCertificado:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nombreCertificado).ToList());
@@ -352,7 +352,7 @@ namespace GestionCertificadosDigitales
                     }
                     break;
 
-                case CampoOrdenacion.serieCertificado:
+                case nombresPropiedades.serieCertificado:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.serieCertificado).ToList());
@@ -363,7 +363,7 @@ namespace GestionCertificadosDigitales
                     }
                     break;
 
-                case CampoOrdenacion.huellaCertificado:
+                case nombresPropiedades.huellaCertificado:
                     if (ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.huellaCertificado).ToList());
@@ -419,11 +419,10 @@ namespace GestionCertificadosDigitales
         /// <param name="fichero">Ruta del fichero a leer</param>
         /// <param name="password">Contraseña del certificado (necesaria para acceder a los datos)</param>
         /// <returns>Serie del certificado, OK si la lectura es correcta o errores que se han producido, ademas de un true o false con el resultado de la lectura</returns>
-        public (string, string, bool) leerCertificado(string fichero, string password)
+        public (string, bool) leerCertificado(string fichero, string password)
         {
             //Se devuelve un mensaje con un OK o el error al leer el fichero, y un true o false.
             string mensaje = string.Empty;
-            string serieCertificado = string.Empty;
             bool respuesta = false;
 
             //Como se pasa el certificado como fichero, se borran los certificados que hay en la lista para que solo aparezca el que se ha pasado
@@ -452,21 +451,20 @@ namespace GestionCertificadosDigitales
                             huellaCertificado = cert.Thumbprint.ToString(),
                             passwordCertificado = password
                         };
-                        serieCertificado = propiedadesCertificado.serieCertificado;
                         obtenerDatosSubject(datosSubject, propiedadesCertificado);
                         datosCertificados.propiedadesCertificado.Add(propiedadesCertificado);
                     }
                 }
                 mensaje = "OK";
                 respuesta = true;
-                return (mensaje, serieCertificado, respuesta);
+                return (mensaje, respuesta);
             }
 
             catch (Exception ex)
             {
                 mensaje = $"No se ha podido leer el certificado. {ex.Message}";
                 respuesta = false;
-                return (mensaje, serieCertificado, respuesta);
+                return (mensaje, respuesta);
             }
         }
 
@@ -549,26 +547,34 @@ namespace GestionCertificadosDigitales
         }
 
         /// <summary>
-        /// Obtiene el valor de una propiedad del certificado
+        /// Obtiene el valor de una propiedad del certificado. Solo devuelve el valor si hay un unico certificado leido
         /// </summary>
         /// <param name="nombrePropiedad">Nombre de la propiedad a consultar (utiliza el enum 'CampoOrdenacion')</param>
         /// <returns>Valor almacenado en la propiedad</returns>
-        public string consultaPropiedades(string nombrePropiedad)
+        public string consultaPropiedades(nombresPropiedades nombrePropiedad)
         {
             string valorPropiedad = string.Empty;
-            foreach (var certificado in datosCertificados.propiedadesCertificado)
+
+            //Solo se devuelve el valor de la propiedad si hay un solo certificado
+            if (datosCertificados.propiedadesCertificado.Count == 1)
             {
-                PropertyInfo propiedad = certificado.GetType().GetProperty(nombrePropiedad);
-                if (propiedad != null)
+                foreach (var certificado in datosCertificados.propiedadesCertificado)
                 {
-                    valorPropiedad = propiedad.GetValue(certificado).ToString();
+                    PropertyInfo propiedad = certificado.GetType().GetProperty(nombrePropiedad.ToString());
+                    if (propiedad != null)
+                    {
+                        valorPropiedad = propiedad.GetValue(certificado).ToString();
+                    }
                 }
             }
 
             return valorPropiedad;
         }
 
-        public enum CampoOrdenacion
+        /// <summary>
+        /// Lista de nombres de propiedades de certificados
+        /// </summary>
+        public enum nombresPropiedades
         {
             nifCertificado,
             titularCertificado,
