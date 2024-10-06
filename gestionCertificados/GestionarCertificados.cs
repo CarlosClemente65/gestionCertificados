@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
+using System.Windows;
 using Newtonsoft.Json;
 
 
@@ -72,16 +73,8 @@ namespace GestionCertificadosDigitales
     {
         //Clase que engloba la gestion de certificados
 
-        private List<X509Certificate2> certificadosDigitales; //Lista que contiene los certificados digitales
+        private List<X509Certificate2> certificadosDigitales = new List<X509Certificate2>(); //Lista que contiene los certificados digitales
         private Certificados datosCertificados = new Certificados(); //Lista que contiene las propiedades de los certificados
-
-        public GestionarCertificados()
-        {
-            //En los metodos que instancien esta clase deben hacer expresamente la carga de los certificado digitales en las dos listas con el metodo 'cargarCertificadosAlmacen()'.
-
-            //Al instanciar esta clase, se crea una nueva lista de certificados
-            certificadosDigitales = new List<X509Certificate2>();
-        }
 
 
         /// <summary>
@@ -208,10 +201,7 @@ namespace GestionCertificadosDigitales
                         break;
 
                     case "CN": //Nombre certificado
-                        if (juridica)
-                        {
                             propiedadesCertificado.nombreCertificado = valor;
-                        }
                         break;
                 }
 
@@ -523,7 +513,7 @@ namespace GestionCertificadosDigitales
                 X509Certificate2 certificado = new X509Certificate2(ruta, password, X509KeyStorageFlags.Exportable);
 
                 // Obtener los datos en formato binario (byte array) del certificado
-                byte[] datosCertificado = certificado.Export(X509ContentType.Pfx,password);
+                byte[] datosCertificado = certificado.Export(X509ContentType.Pfx, password);
 
                 // Convertir los datos a Base64
                 string certificadoBase64 = Convert.ToBase64String(datosCertificado);
@@ -563,7 +553,7 @@ namespace GestionCertificadosDigitales
         /// </summary>
         /// <param name="nombrePropiedad">Nombre de la propiedad a consultar (utiliza el enum 'CampoOrdenacion')</param>
         /// <returns>Valor almacenado en la propiedad</returns>
-        public string consultaPropiedades (string nombrePropiedad)
+        public string consultaPropiedades(string nombrePropiedad)
         {
             string valorPropiedad = string.Empty;
             foreach (var certificado in datosCertificados.propiedadesCertificado)
