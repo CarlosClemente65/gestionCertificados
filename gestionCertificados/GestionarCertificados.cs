@@ -745,6 +745,10 @@ namespace GestionCertificadosDigitales
                 //DateFormatString = "dd/MM/yyyy" //Formato de fecha
             };
             string jsonSalida = JsonConvert.SerializeObject(certificadosSalida, opciones);
+
+            //Elimina los espacios antes de cada linea
+            jsonSalida = string.Join(Environment.NewLine, jsonSalida.Split(new[] { Environment.NewLine }, StringSplitOptions.None).Select(linea => linea.TrimStart()));
+
             return jsonSalida;
 
         }
