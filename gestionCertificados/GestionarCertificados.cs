@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
@@ -10,6 +11,80 @@ using Newtonsoft.Json;
 
 namespace GestionCertificadosDigitales
 {
+    public class CertificadosSalida
+    {
+        //Clase que engloba las propiedades de los certificados
+        public List<PropiedadesCertificadosSalida> propiedadesCertificadoSalida { get; set; }
+
+        public CertificadosSalida()
+        {
+            propiedadesCertificadoSalida = new List<PropiedadesCertificadosSalida>();
+        }
+    }
+    public class PropiedadesCertificadosSalida
+    {
+        //Clase que representa las propiedades de los certificados que necesitamos
+        //Se ponen como propiedades del Json con una letra para facilitar la lectura en la salida
+
+        [JsonProperty("A")]
+        public string nifCertificado { get; set; }
+
+        [JsonProperty("B")]
+        public string titularCertificado { get; set; }
+
+        [JsonProperty("C")]
+        public string serieCertificado { get; set; }
+
+        private DateTime _fechaEmision;
+
+        [JsonProperty("D")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
+        public DateTime fechaEmision
+        {
+            get => _fechaEmision.Date;
+            set => _fechaEmision = value.Date;
+        }
+
+        private DateTime _fechaValidez;
+
+        [JsonProperty("E")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
+        public DateTime fechaValidez
+        {
+            get => _fechaValidez.Date;
+            set => _fechaValidez = value.Date;
+        }
+
+        [JsonProperty("F")]
+        public string nifRepresentante { get; set; }
+
+        [JsonProperty("G")]
+        public string nombreRepresentante { get; set; }
+
+        [JsonProperty("H")]
+        public string nombreCertificado { get; set; }
+
+        [JsonProperty("I")]
+        public string huellaCertificado { get; set; }
+
+        [JsonProperty("J")]
+        public string passwordCertificado { get; set; }
+
+        public PropiedadesCertificadosSalida()
+        {
+            nifCertificado = string.Empty;
+            titularCertificado = string.Empty;
+            serieCertificado = string.Empty;
+            fechaEmision = DateTime.MinValue;
+            fechaValidez = DateTime.MinValue;
+            nifRepresentante = string.Empty;
+            nombreRepresentante = string.Empty;
+            nombreCertificado = string.Empty;
+            passwordCertificado = string.Empty;
+            huellaCertificado = string.Empty;
+        }
+    }
+
     public class Certificados
     {
         //Clase que engloba las propiedades de los certificados
@@ -22,7 +97,8 @@ namespace GestionCertificadosDigitales
     }
     public class PropiedadesCertificados
     {
-        //Clase que representa las propiedades de los certificados que necesitamos
+        //Clase que representa las propiedades de los certificados que se reciben de la libreria dse_utilescert
+
         public string nifCertificado { get; set; }
 
         public string titularCertificado { get; set; }
@@ -30,6 +106,8 @@ namespace GestionCertificadosDigitales
         public string serieCertificado { get; set; }
 
         private DateTime _fechaEmision;
+
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTime fechaEmision
         {
             get => _fechaEmision.Date;
@@ -37,6 +115,8 @@ namespace GestionCertificadosDigitales
         }
 
         private DateTime _fechaValidez;
+
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTime fechaValidez
         {
             get => _fechaValidez.Date;
@@ -65,6 +145,37 @@ namespace GestionCertificadosDigitales
             nombreCertificado = string.Empty;
             passwordCertificado = string.Empty;
             huellaCertificado = string.Empty;
+        }
+    }
+
+    public class CustomDateTimeConverter : JsonConverter
+    {
+        // Define que este convertidor se aplicará a propiedades de tipo DateTime (necesario para tratar bien las fechas del json que se recibe)
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(DateTime);
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            //Modifica la escritura del Json para formatear las fechas como 'dd/mm/yyyy'
+            if (value is DateTime dateTime)
+            {
+                writer.WriteValue(dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
+            }
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            //Modifica la lectura del Json para formatear las fechas como 'dd/mm/yyyy'
+            string dateString = (string)reader.Value;
+
+            // Verificamos si el valor es nulo o vacío
+            if (string.IsNullOrWhiteSpace(dateString))
+                return DateTime.MinValue;
+
+            // Convertir la cadena de fecha a DateTime
+            return DateTime.ParseExact(dateString, "dd/MM/yyyy", CultureInfo.InvariantCulture);
         }
     }
 
@@ -472,7 +583,7 @@ namespace GestionCertificadosDigitales
         /// Permite obtener las propiedades de los certificados para poder exportarlos a un fichero
         /// </summary>
         /// <returns>Texto con formato Json con las propiedades de los certificados, 'true' si se han podido obtener los datos o 'false' en caso contrario</returns>
-        public (string, bool) exportarPropiedadesCertificados()
+        public (string, bool) exportarPropiedadesCertificados(bool exportaDiagram)
         {
             try
             {
@@ -485,6 +596,11 @@ namespace GestionCertificadosDigitales
                 };
 
                 string jsonSalida = JsonConvert.SerializeObject(datosCertificados, opciones);
+
+                if (exportaDiagram)
+                {
+                    jsonSalida = ajusteDiagram(jsonSalida);
+                }
 
                 return (jsonSalida, true);
             }
@@ -585,6 +701,50 @@ namespace GestionCertificadosDigitales
             nombreRepresentante,
             nombreCertificado,
             huellaCertificado
+        }
+
+        /// <summary>
+        /// Ajusta el json recibido a la salida que esperamos con letras en vez de nombres de propiedades
+        /// </summary>
+        /// <param name="json"></param>
+        /// <returns>El json recibido formateando la propiedades con letras de la A a la J</returns>
+        public string ajusteDiagram(string json)
+        {
+            //Ajusta el json recibido a la salida que esperamos con letras en vez de nombres de propiedades
+            // Deserializar el JSON en la clase original
+            var certificadosEntrada = JsonConvert.DeserializeObject<Certificados>(json);
+
+            var certificadosSalida = new CertificadosSalida();
+
+            // Mapear las propiedades
+            foreach (var propiedad in certificadosEntrada.propiedadesCertificado)
+            {
+                var propiedadSalida = new PropiedadesCertificadosSalida
+                {
+                    nifCertificado = propiedad.nifCertificado,
+                    titularCertificado = propiedad.titularCertificado,
+                    serieCertificado = propiedad.serieCertificado,
+                    fechaEmision = propiedad.fechaEmision,
+                    fechaValidez = propiedad.fechaValidez,
+                    nifRepresentante = propiedad.nifRepresentante,
+                    nombreRepresentante = propiedad.nombreRepresentante,
+                    nombreCertificado = propiedad.nombreCertificado,
+                    huellaCertificado = propiedad.huellaCertificado,
+                    passwordCertificado = propiedad.passwordCertificado
+                };
+
+                certificadosSalida.propiedadesCertificadoSalida.Add(propiedadSalida);
+            }
+
+            JsonSerializerSettings opciones = new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented, // Aplica indentación
+                StringEscapeHandling = StringEscapeHandling.EscapeHtml, // Evita caracteres especiales
+                //DateFormatString = "dd/MM/yyyy" //Formato de fecha
+            };
+            string jsonSalida = JsonConvert.SerializeObject(certificadosSalida, opciones);
+            return jsonSalida;
+
         }
     }
 
