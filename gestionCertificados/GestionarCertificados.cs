@@ -579,9 +579,11 @@ namespace GestionCertificadosDigitales
             }
         }
 
+
         /// <summary>
-        /// Permite obtener las propiedades de los certificados para poder exportarlos a un fichero
+        ///Permite obtener las propiedades de los certificados para poder exportarlos a un fichero 
         /// </summary>
+        /// <param name="exportaDiagram">True para que el formato lleve letras en vez de nombres de propiedades, false para no modificarlo</param>
         /// <returns>Texto con formato Json con las propiedades de los certificados, 'true' si se han podido obtener los datos o 'false' en caso contrario</returns>
         public (string, bool) exportarPropiedadesCertificados(bool exportaDiagram)
         {
