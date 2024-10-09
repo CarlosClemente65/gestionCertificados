@@ -749,6 +749,9 @@ namespace GestionCertificadosDigitales
             //Elimina los espacios antes de cada linea
             jsonSalida = string.Join(Environment.NewLine, jsonSalida.Split(new[] { Environment.NewLine }, StringSplitOptions.None).Select(linea => linea.TrimStart()));
 
+            string patron = @":\s";
+            jsonSalida = Regex.Replace(jsonSalida, patron, ":");
+
             return jsonSalida;
 
         }
