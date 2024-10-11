@@ -231,6 +231,42 @@ namespace GestionCertificadosDigitales
         }
 
         /// <summary>
+        /// Proceso para la carga de los datos de un certificado que se pasa como parametro
+        /// </summary>
+        /// <param name="certificadoSeleccionado">Certificado digital del que se quiere almacenar las propiedades</param>
+        public void cargarDatosCertificado(X509Certificate2 certificadoSeleccionado)
+        {
+            certificadosDigitales.Clear();
+            datosCertificados.propiedadesCertificado.Clear();
+
+            //Solo se cargan los certificados no caducados
+            if (certificadoSeleccionado.NotAfter >= DateTime.Now)
+            {
+                certificadosDigitales.Add(certificadoSeleccionado);
+            }
+
+            // Graba las propiedades de los certificados en la clase ListaCertificados
+            foreach (X509Certificate2 certificado in certificadosDigitales)
+            {
+                if (certificado.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
+                {
+                    //En el Subject estan todos los datos del certificado
+                    string datosSubject = certificado.Subject;
+                    PropiedadesCertificados propiedadesCertificado = new PropiedadesCertificados
+                    {
+                        serieCertificado = certificado.SerialNumber,
+                        fechaValidez = certificado.NotAfter,
+                        fechaEmision = certificado.NotBefore,
+                        huellaCertificado = certificado.Thumbprint.ToString()
+                    };
+                    obtenerDatosSubject(datosSubject, propiedadesCertificado);
+                    datosCertificados.propiedadesCertificado.Add(propiedadesCertificado);
+                }
+            }
+        }
+
+
+        /// <summary>
         /// Permite obtener las propiedades de los certificados que estan almacenadas en el campo 'Subject'
         /// </summary>
         /// <param name="subject">Contenido del subject del certificado digital</param>
