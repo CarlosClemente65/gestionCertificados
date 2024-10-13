@@ -709,7 +709,7 @@ namespace GestionCertificadosDigitales
             {
                 respuesta = true;
             }
-            return (certificado, respuesta);
+            return (certificado2, respuesta);
 
         }
 
