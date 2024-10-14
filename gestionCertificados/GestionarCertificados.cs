@@ -700,15 +700,11 @@ namespace GestionCertificadosDigitales
 
             X509Certificate2 certificado = certificadosDigitales.Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
 
-            byte[] certificadoBytes = certificado.Export(X509ContentType.Pfx);
-            string password = "";
-            X509Certificate2 certificado2 = new X509Certificate2(certificadoBytes, password, X509KeyStorageFlags.Exportable);
-
             if (certificado != null)
             {
                 respuesta = true;
             }
-            return (certificado2, respuesta);
+            return (certificado, respuesta);
 
         }
 
