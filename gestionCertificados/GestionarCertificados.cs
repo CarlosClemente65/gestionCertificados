@@ -234,7 +234,7 @@ namespace GestionCertificadosDigitales
         /// Proceso para la carga de los datos de un certificado que se pasa como parametro
         /// </summary>
         /// <param name="certificadoSeleccionado">Certificado digital del que se quiere almacenar las propiedades</param>
-        public void cargarDatosCertificado(X509Certificate2 certificadoSeleccionado)
+        public void cargarDatosCertificado(X509Certificate2 certificadoSeleccionado, string password)
         {
             certificadosDigitales.Clear();
             datosCertificados.propiedadesCertificado.Clear();
@@ -257,7 +257,8 @@ namespace GestionCertificadosDigitales
                         serieCertificado = certificado.SerialNumber,
                         fechaValidez = certificado.NotAfter,
                         fechaEmision = certificado.NotBefore,
-                        huellaCertificado = certificado.Thumbprint.ToString()
+                        huellaCertificado = certificado.Thumbprint.ToString(),
+                        passwordCertificado = password
                     };
                     obtenerDatosSubject(datosSubject, propiedadesCertificado);
                     datosCertificados.propiedadesCertificado.Add(propiedadesCertificado);
@@ -531,13 +532,19 @@ namespace GestionCertificadosDigitales
         /// </summary>
         /// <param name="filtro">Texto a buscar</param>
         /// <returns>Lista de certificados filtrada</returns>
-        public List<PropiedadesCertificados> filtrarCertificadosNombre(string filtro)
+        public List<PropiedadesCertificados> filtrarCertificados(string filtro)
         {
             List<PropiedadesCertificados> certificados = datosCertificados.propiedadesCertificado;
             if (!string.IsNullOrEmpty(filtro))
             {
                 filtro = filtro.ToUpper();
-                certificados = new List<PropiedadesCertificados>(certificados.FindAll(certificado => certificado.titularCertificado.ToUpper().Contains(filtro)));
+                certificados = new List<PropiedadesCertificados>(
+                    certificados.FindAll(certificado =>
+                    certificado.titularCertificado.ToUpper().Contains(filtro) ||
+                    certificado.nifCertificado.ToUpper().Contains(filtro) ||
+                    certificado.nifRepresentante.ToUpper().Contains(filtro) ||
+                    certificado.nombreRepresentante.ToUpper().Contains(filtro)
+                    ));
             }
             return certificados;
         }
@@ -692,11 +699,16 @@ namespace GestionCertificadosDigitales
             bool respuesta = false;
 
             X509Certificate2 certificado = certificadosDigitales.Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
+
+            byte[] certificadoBytes = certificado.Export(X509ContentType.Pfx);
+            string password = "";
+            X509Certificate2 certificado2 = new X509Certificate2(certificadoBytes, password, X509KeyStorageFlags.Exportable);
+
             if (certificado != null)
             {
                 respuesta = true;
             }
-            return (certificado, respuesta);
+            return (certificado2, respuesta);
 
         }
 
