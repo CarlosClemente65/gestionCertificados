@@ -693,12 +693,18 @@ namespace GestionCertificadosDigitales
         /// </summary>
         /// <param name="serieCertificado">Numero de serie del certificado a obtener</param>
         /// <returns>Certificado digital</returns>
-        public (X509Certificate2, bool) exportaCertificadoDigital(string serieCertificado)
+        public (X509Certificate2, bool) exportaCertificadoDigital(string serieCertificado, string password = "")
         {
             //Devuelve el certificado digital que tenga el numero de serie se haya pasado por parametro; si no lo encuentra devuelve null
             bool respuesta = false;
+            X509Certificate2 certificado = null;
+            certificado = certificadosDigitales.Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(password))
+            {
+                byte[] certificadoBytes = certificado.Export(X509ContentType.Pfx, password);
+                certificado = new X509Certificate2(certificadoBytes, password, X509KeyStorageFlags.Exportable);
+            }
 
-            X509Certificate2 certificado = certificadosDigitales.Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
 
             if (certificado != null)
             {
