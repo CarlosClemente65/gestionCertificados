@@ -1,0 +1,12 @@
+Libreria 'dse_utilescert.dll' con varios metodos para la gestion de certificados:
+	- Lectura y almacenamiento de los certificados digitales del equipo junto con sus propiedades para su utilizacion posterior.
+	- Busqueda de un certificado por el numero de serie, NIF o nombre del titular del certificado.
+	- Obtener una lista con los certificados leidos.
+	- Obtener una lista ordenada de los certificados leidos, segun el campo pasado por parametro.
+	- Obtener una lista filtrada por nombre o nif del titular o representante de los certificados leidos
+	- Lectura y almacenamiento de un certificado digital en fichero pasado por parametro.
+	- Exportar en formato Json las propiedades de los certificados procesados.
+	- Exportar un certificado digital en formato 'base64' pasado desde un fichero como parametro
+	- Exportar un certificado digital en formato .pfx segun el numero de serie pasado por parametro.
+	- Obtener el valor de una propiedad pasada por parametro de un certificado digital
+	- Ajusta la salida de resultados al formato que se necesita en las aplicacion de Diagram

@@ -799,6 +799,15 @@ namespace GestionCertificadosDigitales
             return jsonSalida;
 
         }
+
+        /// <summary>
+        /// Limpia la lista de certificados y sus propiedades
+        /// </summary>
+        public void limpiarCertificados()
+        {
+            certificadosDigitales.Clear();
+            datosCertificados.propiedadesCertificado.Clear();
+        }
     }
 
 }
