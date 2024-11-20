@@ -302,22 +302,22 @@ namespace GestionCertificadosDigitales
                     case "G": //Nombre del titular del certificado o del representante si es juridica
                         if (juridica)
                         {
-                            nombreRepresentante = valor;
+                            nombreRepresentante = LimpiarTexto(valor);
                         }
                         else
                         {
-                            nombrePF = valor;
+                            nombrePF = LimpiarTexto(valor);
                         }
                         break;
 
                     case "SN": //Apellido del titular del certificado o del representante si es juridica
                         if (juridica)
                         {
-                            apellidoRepresentante = valor;
+                            apellidoRepresentante = LimpiarTexto(valor);
                         }
                         else
                         {
-                            apellidoPF = valor;
+                            apellidoPF = LimpiarTexto(valor);
                         }
                         break;
 
@@ -337,7 +337,7 @@ namespace GestionCertificadosDigitales
                         break;
 
                     case "O": //Nombre de la sociedad
-                        nombrePJ = valor;
+                        nombrePJ = LimpiarTexto(valor);
                         break;
 
                     case "OID.2.5.4.97": //NIF de la sociedad
@@ -349,7 +349,7 @@ namespace GestionCertificadosDigitales
                         break;
 
                     case "CN": //Nombre certificado
-                        propiedadesCertificado.nombreCertificado = valor;
+                        propiedadesCertificado.nombreCertificado = LimpiarTexto(valor);
                         break;
                 }
 
@@ -807,6 +807,24 @@ namespace GestionCertificadosDigitales
         {
             certificadosDigitales.Clear();
             datosCertificados.propiedadesCertificado.Clear();
+        }
+
+        private string LimpiarTexto(string texto)
+        {
+            //Metodo para limpiar los texto de caracteres extraños 
+            if(string.IsNullOrEmpty(texto))
+                return texto;
+
+            // Lista de caracteres especiales a eliminar o reemplazar (en un certificado venian comillas en el nombre)
+            char[] caracteresEspeciales = { '\"', '\'', '\\', '\u0022'}; // Incluidas por orden: comillas dobles, comillas simples, barra inclinada, comillas dobles en formato unicode
+
+            // Eliminar caracteres especiales
+            foreach(char caracter in caracteresEspeciales)
+            {
+                texto = texto.Replace(caracter.ToString(), string.Empty);
+            }
+
+            return texto;
         }
     }
 
