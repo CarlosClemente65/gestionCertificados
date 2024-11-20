@@ -285,7 +285,9 @@ namespace GestionCertificadosDigitales
             string nifCertificado = string.Empty;
             string patronNif = @"\b(?=(?:\w*[A-Z]){1,2})(?=(?:\w*\d){2,})\w{9}\b"; //Patron de NIF
 
-            string[] partes = subject.Split(',');
+            //string[] partes = subject.Split(',');
+            List<string> partes = ElementosSubject(subject);
+
             foreach (string parte in partes)
             {
                 string[] elementos = parte.Trim().Split('=');
@@ -371,6 +373,7 @@ namespace GestionCertificadosDigitales
                 }
             }
         }
+
 
         /// <summary>
         /// Obtiene el numero de serie de un certificado buscando en el numero de serie, NIF o nombre del titular
@@ -825,6 +828,27 @@ namespace GestionCertificadosDigitales
             }
 
             return texto;
+        }
+
+        private List<string> ElementosSubject(string subject)
+        {
+            //Divide el contenido del subjet en parejas clave=valor para evitar que si llegan comas dentro del texto, se partan los datos por donde no son.
+            if(string.IsNullOrEmpty(subject))
+                return new List<string>();
+
+            // Expresión regular para extraer pares clave=valor, respetando comillas
+            string pattern = @"([^,=]+)=(""[^""]*""|[^,]*)";
+
+            var matches = Regex.Matches(subject, pattern);
+
+            List<string> partes = new List<string>();
+            foreach(Match match in matches)
+            {
+                // Cada coincidencia corresponde a un par clave=valor
+                partes.Add(match.Value);
+            }
+
+            return partes;
         }
     }
 
