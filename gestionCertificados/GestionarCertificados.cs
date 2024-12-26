@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
@@ -159,7 +160,7 @@ namespace GestionCertificadosDigitales
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             //Modifica la escritura del Json para formatear las fechas como 'dd/mm/yyyy'
-            if (value is DateTime dateTime)
+            if(value is DateTime dateTime)
             {
                 writer.WriteValue(dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
             }
@@ -171,7 +172,7 @@ namespace GestionCertificadosDigitales
             string dateString = (string)reader.Value;
 
             // Verificamos si el valor es nulo o vacío
-            if (string.IsNullOrWhiteSpace(dateString))
+            if(string.IsNullOrWhiteSpace(dateString))
                 return DateTime.MinValue;
 
             // Convertir la cadena de fecha a DateTime
@@ -194,15 +195,15 @@ namespace GestionCertificadosDigitales
         public void cargarCertificadosAlmacen()
         {
             //Se chequea si ya se ha cargado la lista de certificados para no hacerlo de nuevo
-            if (certificadosDigitales.Count == 0)
+            if(certificadosDigitales.Count == 0)
             {
                 //Metodo para cargar los certificados del almacen de windows
                 X509Store almacen = new X509Store(StoreLocation.CurrentUser);
                 almacen.Open(OpenFlags.ReadOnly);
-                foreach (X509Certificate2 certificado in almacen.Certificates)
+                foreach(X509Certificate2 certificado in almacen.Certificates)
                 {
                     //Solo se cargan los certificados no caducados
-                    if (certificado.NotAfter >= DateTime.Now)
+                    if(certificado.NotAfter >= DateTime.Now)
                     {
                         certificadosDigitales.Add(certificado);
                     }
@@ -210,9 +211,9 @@ namespace GestionCertificadosDigitales
                 almacen.Close();
 
                 // Graba las propiedades de los certificados en la clase ListaCertificados
-                foreach (X509Certificate2 certificado in certificadosDigitales)
+                foreach(X509Certificate2 certificado in certificadosDigitales)
                 {
-                    if (certificado.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
+                    if(certificado.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
                     {
                         //En el Subject estan todos los datos del certificado
                         string datosSubject = certificado.Subject;
@@ -240,15 +241,15 @@ namespace GestionCertificadosDigitales
             datosCertificados.propiedadesCertificado.Clear();
 
             //Solo se cargan los certificados no caducados
-            if (certificadoSeleccionado.NotAfter >= DateTime.Now)
+            if(certificadoSeleccionado.NotAfter >= DateTime.Now)
             {
                 certificadosDigitales.Add(certificadoSeleccionado);
             }
 
             // Graba las propiedades de los certificados en la clase ListaCertificados
-            foreach (X509Certificate2 certificado in certificadosDigitales)
+            foreach(X509Certificate2 certificado in certificadosDigitales)
             {
-                if (certificado.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
+                if(certificado.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
                 {
                     //En el Subject estan todos los datos del certificado
                     string datosSubject = certificado.Subject;
@@ -276,7 +277,7 @@ namespace GestionCertificadosDigitales
         {
             //Carga los datos del certificado en las propiedades de la clase
             bool juridica = false;
-            if (subject.Contains("2.5.4.97")) juridica = true;
+            if(subject.Contains("2.5.4.97")) juridica = true;
             string nombrePF = string.Empty; ;
             string apellidoPF = string.Empty;
             string nombrePJ = string.Empty;
@@ -288,21 +289,21 @@ namespace GestionCertificadosDigitales
             //string[] partes = subject.Split(',');
             List<string> partes = ElementosSubject(subject);
 
-            foreach (string parte in partes)
+            foreach(string parte in partes)
             {
                 string[] elementos = parte.Trim().Split('=');
                 string elemento = string.Empty;
                 string valor = string.Empty;
-                if (elementos.Length == 2)
+                if(elementos.Length == 2)
                 {
                     elemento = elementos[0];
                     valor = elementos[1];
                 }
 
-                switch (elemento)
+                switch(elemento)
                 {
                     case "G": //Nombre del titular del certificado o del representante si es juridica
-                        if (juridica)
+                        if(juridica)
                         {
                             nombreRepresentante = LimpiarTexto(valor);
                         }
@@ -313,7 +314,7 @@ namespace GestionCertificadosDigitales
                         break;
 
                     case "SN": //Apellido del titular del certificado o del representante si es juridica
-                        if (juridica)
+                        if(juridica)
                         {
                             apellidoRepresentante = LimpiarTexto(valor);
                         }
@@ -325,9 +326,9 @@ namespace GestionCertificadosDigitales
 
                     case "SERIALNUMBER": //NIF del titular del certificado o del representante si es juridica
                         Match buscaNif = Regex.Match(valor, patronNif);
-                        if (buscaNif.Success)
+                        if(buscaNif.Success)
                         {
-                            if (juridica)
+                            if(juridica)
                             {
                                 propiedadesCertificado.nifRepresentante = buscaNif.Value;
                             }
@@ -344,7 +345,7 @@ namespace GestionCertificadosDigitales
 
                     case "OID.2.5.4.97": //NIF de la sociedad
                         Match buscaCIF = Regex.Match(valor, patronNif);
-                        if (buscaCIF.Success)
+                        if(buscaCIF.Success)
                         {
                             nifCertificado = buscaCIF.Value;
                         }
@@ -355,13 +356,13 @@ namespace GestionCertificadosDigitales
                         break;
                 }
 
-                if (string.IsNullOrEmpty(propiedadesCertificado.nifCertificado)) propiedadesCertificado.nifCertificado = nifCertificado;
-                if (string.IsNullOrEmpty(propiedadesCertificado.titularCertificado) || string.IsNullOrEmpty(propiedadesCertificado.nombreRepresentante))
+                if(string.IsNullOrEmpty(propiedadesCertificado.nifCertificado)) propiedadesCertificado.nifCertificado = nifCertificado;
+                if(string.IsNullOrEmpty(propiedadesCertificado.titularCertificado) || string.IsNullOrEmpty(propiedadesCertificado.nombreRepresentante))
                 {
-                    if (juridica)
+                    if(juridica)
                     {
                         propiedadesCertificado.titularCertificado = nombrePJ;
-                        if (!string.IsNullOrEmpty(nombreRepresentante))
+                        if(!string.IsNullOrEmpty(nombreRepresentante))
                         {
                             propiedadesCertificado.nombreRepresentante = apellidoRepresentante + " " + nombreRepresentante;
                         }
@@ -390,7 +391,7 @@ namespace GestionCertificadosDigitales
                 cert.titularCertificado.Contains(textoBusqueda) ||
                 cert.serieCertificado.Contains(textoBusqueda)
                 );
-            if (buscaCertificado != null)
+            if(buscaCertificado != null)
             {
                 resultadoBusqueda = buscaCertificado.serieCertificado;
             }
@@ -418,16 +419,16 @@ namespace GestionCertificadosDigitales
         public List<PropiedadesCertificados> ordenarCertificados(nombresPropiedades campoOrdenacion, bool ascendente)
         {
             List<PropiedadesCertificados> certificados = datosCertificados.propiedadesCertificado;
-            if (certificados == null || certificados.Count == 0)
+            if(certificados == null || certificados.Count == 0)
             {
                 //Evita que se produzca una excepcion si no hay certificados cargados en la lista
                 return datosCertificados.propiedadesCertificado;
             }
 
-            switch (campoOrdenacion)
+            switch(campoOrdenacion)
             {
                 case nombresPropiedades.nifCertificado:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nifCertificado).ToList());
                     }
@@ -438,7 +439,7 @@ namespace GestionCertificadosDigitales
                     break;
 
                 case nombresPropiedades.titularCertificado:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.titularCertificado).ToList());
                     }
@@ -449,7 +450,7 @@ namespace GestionCertificadosDigitales
                     break;
 
                 case nombresPropiedades.fechaValidez:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.fechaValidez).ToList());
                     }
@@ -460,7 +461,7 @@ namespace GestionCertificadosDigitales
                     break;
 
                 case nombresPropiedades.fechaEmision:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.fechaEmision).ToList());
                     }
@@ -471,7 +472,7 @@ namespace GestionCertificadosDigitales
                     break;
 
                 case nombresPropiedades.nifRepresentante:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nifRepresentante).ToList());
                     }
@@ -482,7 +483,7 @@ namespace GestionCertificadosDigitales
                     break;
 
                 case nombresPropiedades.nombreRepresentante:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nombreRepresentante).ToList());
                     }
@@ -493,7 +494,7 @@ namespace GestionCertificadosDigitales
                     break;
 
                 case nombresPropiedades.nombreCertificado:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.nombreCertificado).ToList());
                     }
@@ -504,7 +505,7 @@ namespace GestionCertificadosDigitales
                     break;
 
                 case nombresPropiedades.serieCertificado:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.serieCertificado).ToList());
                     }
@@ -515,7 +516,7 @@ namespace GestionCertificadosDigitales
                     break;
 
                 case nombresPropiedades.huellaCertificado:
-                    if (ascendente)
+                    if(ascendente)
                     {
                         certificados = new List<PropiedadesCertificados>(certificados.OrderBy(certificado => certificado.huellaCertificado).ToList());
                     }
@@ -538,7 +539,7 @@ namespace GestionCertificadosDigitales
         public List<PropiedadesCertificados> filtrarCertificados(string filtro)
         {
             List<PropiedadesCertificados> certificados = datosCertificados.propiedadesCertificado;
-            if (!string.IsNullOrEmpty(filtro))
+            if(!string.IsNullOrEmpty(filtro))
             {
                 filtro = filtro.ToUpper();
                 certificados = new List<PropiedadesCertificados>(
@@ -561,7 +562,7 @@ namespace GestionCertificadosDigitales
         public List<PropiedadesCertificados> filtrarCertificadosNif(string filtro)
         {
             List<PropiedadesCertificados> certificados = datosCertificados.propiedadesCertificado;
-            if (!string.IsNullOrEmpty(filtro))
+            if(!string.IsNullOrEmpty(filtro))
             {
                 filtro = filtro.ToUpper();
                 certificados = new List<PropiedadesCertificados>(certificados.FindAll(certificado => certificado.nifCertificado.ToUpper().Contains(filtro)));
@@ -571,19 +572,19 @@ namespace GestionCertificadosDigitales
 
 
         /// <summary>
-        /// Permite leer las propiedades de un certificado pasado como fichero
+        /// Lectura y almacenamiento de un certificado pasado como fichero, junto a sus propiedades
         /// </summary>
         /// <param name="fichero">Ruta del fichero a leer</param>
         /// <param name="password">Contraseña del certificado (necesaria para acceder a los datos)</param>
-        /// <returns>Serie del certificado, OK si la lectura es correcta o errores que se han producido, ademas de un true o false con el resultado de la lectura</returns>
+        /// <returns>Errores que se han producido al leer el fichero o un OK si la lectura es correcta, ademas de un true o false con el resultado de la lectura</returns>
         public (string, bool) leerCertificado(string fichero, string password)
         {
             //Se devuelve un mensaje con un OK o el error al leer el fichero, y un true o false.
-            string mensaje = string.Empty;
-            bool respuesta = false;
+            string mensaje;
+            bool respuesta;
 
-            //Como se pasa el certificado como fichero, se borran los certificados que hay en la lista para que solo aparezca el que se ha pasado
-            if (certificadosDigitales.Count > 0)
+            //Se borran los certificados que pueda haber en la lista de certificados leidos previamente, para que solo aparezca el que se ha pasado
+            if(certificadosDigitales.Count > 0)
             {
                 certificadosDigitales.Clear();
                 datosCertificados.propiedadesCertificado.Clear();
@@ -591,37 +592,42 @@ namespace GestionCertificadosDigitales
 
             try
             {
+            //Se lee el certificado con su contraseña y se almacena en la lista de certificados de la clase
                 X509Certificate2 certificado = new X509Certificate2(fichero, password, X509KeyStorageFlags.Exportable);
-                certificadosDigitales.Add(certificado);
-                // Graba las propiedades del certificado en la clase certificadosInfo
-                foreach (X509Certificate2 cert in certificadosDigitales)
+
+                //Solo se cargan si el certificados no esta caducado
+                if(certificado.NotAfter >= DateTime.Now)
                 {
-                    if (cert.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
-                    {
-                        //En el Subject estan todos los datos del certificado
-                        string datosSubject = cert.Subject;
-                        PropiedadesCertificados propiedadesCertificado = new PropiedadesCertificados
-                        {
-                            fechaValidez = cert.NotAfter,
-                            fechaEmision = certificado.NotBefore,
-                            serieCertificado = cert.SerialNumber,
-                            huellaCertificado = cert.Thumbprint.ToString(),
-                            passwordCertificado = password
-                        };
-                        obtenerDatosSubject(datosSubject, propiedadesCertificado);
-                        datosCertificados.propiedadesCertificado.Add(propiedadesCertificado);
-                    }
+                    certificadosDigitales.Add(certificado);
                 }
-                mensaje = "OK";
-                respuesta = true;
-                return (mensaje, respuesta);
+                else
+                {
+                    return ($"El certificado digital seleccionado esta caducado. Fecha de validez: {certificado.NotAfter}", false);
+                }
+
+                // Graba las propiedades del certificado en la clase certificadosInfo
+                if(certificado.Subject.Contains("SERIALNUMBER")) //Deben tener esto para que sean de persona fisica o juridica
+                {
+                    //En el Subject estan todos los datos del certificado
+                    string datosSubject = certificado.Subject;
+                    PropiedadesCertificados propiedadesCertificado = new PropiedadesCertificados
+                    {
+                        fechaValidez = certificado.NotAfter,
+                        fechaEmision = certificado.NotBefore,
+                        serieCertificado = certificado.SerialNumber,
+                        huellaCertificado = certificado.Thumbprint.ToString(),
+                        passwordCertificado = password
+                    };
+                    obtenerDatosSubject(datosSubject, propiedadesCertificado);
+                    datosCertificados.propiedadesCertificado.Add(propiedadesCertificado);
+                }
+
+                return ("OK", true);
             }
 
-            catch (Exception ex)
+            catch(Exception ex)
             {
-                mensaje = $"No se ha podido leer el certificado. {ex.Message}";
-                respuesta = false;
-                return (mensaje, respuesta);
+                return ($"No se ha podido leer el certificado. {ex.Message}", false);
             }
         }
 
@@ -645,7 +651,7 @@ namespace GestionCertificadosDigitales
 
                 string jsonSalida = JsonConvert.SerializeObject(datosCertificados, opciones);
 
-                if (exportaDiagram)
+                if(exportaDiagram)
                 {
                     jsonSalida = ajusteDiagram(jsonSalida);
                 }
@@ -653,7 +659,7 @@ namespace GestionCertificadosDigitales
                 return (jsonSalida, true);
             }
 
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 string mensaje = $"No se ha podido grabar los datos de los certificados. {ex.Message}";
                 return (mensaje, false);
@@ -682,7 +688,7 @@ namespace GestionCertificadosDigitales
 
                 return (certificadoBase64, true);
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 string mensaje = $"No se ha podido leer el certificado. {ex.Message}";
                 return (mensaje, false);
@@ -703,7 +709,7 @@ namespace GestionCertificadosDigitales
 
             X509Certificate2 certificado = certificadosDigitales.Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
 
-            if (certificado != null)
+            if(certificado != null)
             {
                 respuesta = true;
             }
@@ -721,12 +727,12 @@ namespace GestionCertificadosDigitales
             string valorPropiedad = string.Empty;
 
             //Solo se devuelve el valor de la propiedad si hay un solo certificado
-            if (datosCertificados.propiedadesCertificado.Count == 1)
+            if(datosCertificados.propiedadesCertificado.Count == 1)
             {
-                foreach (var certificado in datosCertificados.propiedadesCertificado)
+                foreach(var certificado in datosCertificados.propiedadesCertificado)
                 {
                     PropertyInfo propiedad = certificado.GetType().GetProperty(nombrePropiedad.ToString());
-                    if (propiedad != null)
+                    if(propiedad != null)
                     {
                         valorPropiedad = propiedad.GetValue(certificado).ToString();
                     }
@@ -766,7 +772,7 @@ namespace GestionCertificadosDigitales
             var certificadosSalida = new CertificadosSalida();
 
             // Mapear las propiedades
-            foreach (var propiedad in certificadosEntrada.propiedadesCertificado)
+            foreach(var propiedad in certificadosEntrada.propiedadesCertificado)
             {
                 var propiedadSalida = new PropiedadesCertificadosSalida
                 {
@@ -819,7 +825,7 @@ namespace GestionCertificadosDigitales
                 return texto;
 
             // Lista de caracteres especiales a eliminar o reemplazar (en un certificado venian comillas en el nombre)
-            char[] caracteresEspeciales = { '\"', '\'', '\\', '\u0022'}; // Incluidas por orden: comillas dobles, comillas simples, barra inclinada, comillas dobles en formato unicode
+            char[] caracteresEspeciales = { '\"', '\'', '\\', '\u0022' }; // Incluidas por orden: comillas dobles, comillas simples, barra inclinada, comillas dobles en formato unicode
 
             // Eliminar caracteres especiales
             foreach(char caracter in caracteresEspeciales)
