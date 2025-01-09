@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -623,6 +624,11 @@ namespace GestionCertificadosDigitales
                 }
 
                 return ("OK", true);
+            }
+
+            catch(CryptographicException ex)
+            {
+                return ($"Contraseña incorrecta. {ex.Message}", false);
             }
 
             catch(Exception ex)
