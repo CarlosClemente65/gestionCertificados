@@ -651,7 +651,7 @@ namespace GestionCertificadosDigitales
                 JsonSerializerSettings opciones = new JsonSerializerSettings
                 {
                     Formatting = Formatting.Indented, // Aplica indentación
-                    StringEscapeHandling = StringEscapeHandling.EscapeHtml, // Evita caracteres especiales
+                    //StringEscapeHandling = StringEscapeHandling.EscapeHtml, // Evita caracteres especiales
                     DateFormatString = "dd/MM/yyyy" //Formato de fecha
                 };
 
@@ -800,7 +800,7 @@ namespace GestionCertificadosDigitales
             JsonSerializerSettings opciones = new JsonSerializerSettings
             {
                 Formatting = Formatting.Indented, // Aplica indentación
-                StringEscapeHandling = StringEscapeHandling.EscapeHtml, // Evita caracteres especiales
+                //StringEscapeHandling = StringEscapeHandling.EscapeHtml, // Evita caracteres especiales
                 //DateFormatString = "dd/MM/yyyy" //Formato de fecha
             };
             string jsonSalida = JsonConvert.SerializeObject(certificadosSalida, opciones);
