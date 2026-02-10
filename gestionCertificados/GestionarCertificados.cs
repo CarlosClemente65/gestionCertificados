@@ -593,7 +593,7 @@ namespace GestionCertificadosDigitales
 
             try
             {
-            //Se lee el certificado con su contraseña y se almacena en la lista de certificados de la clase
+                //Se lee el certificado con su contraseña y se almacena en la lista de certificados de la clase
                 X509Certificate2 certificado = new X509Certificate2(fichero, password, X509KeyStorageFlags.Exportable);
 
                 //Solo se cargan si el certificados no esta caducado
@@ -713,14 +713,21 @@ namespace GestionCertificadosDigitales
             //Devuelve el certificado digital que tenga el numero de serie se haya pasado por parametro; si no lo encuentra devuelve null
             bool respuesta = false;
 
-            X509Certificate2 certificado = certificadosDigitales.Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
-
-            if(certificado != null)
+            try
             {
-                respuesta = true;
-            }
-            return (certificado, respuesta);
+                X509Certificate2 certificado = certificadosDigitales.Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
 
+                if(certificado != null)
+                {
+                    respuesta = true;
+                }
+                return (certificado, respuesta);
+            }
+
+            catch(Exception ex)
+            {
+                throw new Exception($"No se ha podido exportar el certificado digital. {ex.Message}");
+            }
         }
 
         /// <summary>
