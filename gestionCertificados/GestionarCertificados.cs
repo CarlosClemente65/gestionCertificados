@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using Newtonsoft.Json;
@@ -729,6 +730,91 @@ namespace GestionCertificadosDigitales
                 throw new Exception($"No se ha podido exportar el certificado digital. {ex.Message}");
             }
         }
+
+
+        /// <summary>
+        /// Obtiene un certificado digital válido para autenticación SSL,
+        /// realizando comprobaciones críticas sobre su estado y usabilidad.
+        /// </summary>
+        /// <param name="serieCertificado">Número de serie del certificado a obtener</param>
+        /// <returns>Certificado digital listo para su uso en SSL</returns>
+        /// <exception cref="Exception">Se lanza con mensajes descriptivos si el certificado no es válido o accesible</exception>
+        public X509Certificate2 exportaCertificadoDigitalSeguro(string serieCertificado)
+        {
+            try
+            {
+                // Se busca el certificado en la lista previamente cargada en memoria
+                X509Certificate2 certificado = certificadosDigitales
+                    .Find(cert => cert.SerialNumber.Equals(serieCertificado, StringComparison.OrdinalIgnoreCase));
+
+                // Carga el nombre del certificado para usarlo en los mensajes de error
+                string nombreCertificado = certificado.GetNameInfo(X509NameType.SimpleName, false);
+
+                // Si no se encuentra, lanzamos excepción con mensaje descriptivo
+                if(certificado == null)
+                {
+                    throw new Exception("No se ha encontrado el certificado digital solicitado.");
+                }
+
+                // Validación crítica: el certificado debe tener clave privada
+                // Muchos errores SSL vienen de certificados importados sin ella
+                if(!certificado.HasPrivateKey)
+                {
+                    throw new Exception($"El certificado no tiene clave privada. Se recomienda reinstalarlo.\nCertificado: {nombreCertificado}");
+                }
+
+                // Validación de accesibilidad real de la clave privada
+                // Aunque HasPrivateKey sea true, la clave puede no ser usable (permisos, proveedor criptográfico, etc.)
+                try
+                {
+                    using(RSA rsa = certificado.GetRSAPrivateKey())
+                    {
+                        if(rsa == null)
+                        {
+                            throw new Exception();
+                        }
+                    }
+                }
+                catch
+                {
+                    throw new Exception($"La clave privada del certificado puede estar dañada o no estar incluida. Se recomienda reinstalarlo.\nCertificado: {nombreCertificado}");
+                }
+
+                // Validación de la cadena de confianza (TSL / CA) usando X509Chain
+                // Esto detecta problemas de certificados intermedios, raíz no confiable o revocación
+                X509Chain chain = new X509Chain();
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.Online; // Comprobar revocación en línea
+                chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot; // Excluir la raíz en la verificación
+                chain.ChainPolicy.VerificationFlags = X509VerificationFlags.NoFlag; // Sin flags especiales
+                chain.ChainPolicy.VerificationTime = DateTime.Now; // Verificación en el momento actual
+
+                bool cadenaValida = chain.Build(certificado);
+
+                if(!cadenaValida)
+                {
+                    // Se recopilan los errores de la cadena para un mensaje descriptivo
+                    StringBuilder errores = new StringBuilder();
+                    errores.AppendLine("Errores:");
+                    foreach(X509ChainStatus status in chain.ChainStatus)
+                    {
+                        errores.AppendLine($"- {status.StatusInformation.Trim()}");
+                    }
+
+                    throw new Exception($"La cadena de confianza del certificado no es válida. Se recomienda reinstalarlo\nCertificado: {nombreCertificado}\n{errores.ToString()}"
+                    );
+                }
+
+                // Si se llega aquí, el certificado ha pasado todas las validaciones críticas
+                return certificado;
+            }
+            catch(Exception ex)
+            {
+                // Lanzamos una excepción final con un mensaje global descriptivo
+                throw new Exception($"Error al obtener el certificado digital: {ex.Message}");
+            }
+        }
+
+
 
         /// <summary>
         /// Obtiene el valor de una propiedad del certificado. Solo devuelve el valor si hay un unico certificado leido
