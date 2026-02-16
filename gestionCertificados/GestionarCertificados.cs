@@ -778,30 +778,6 @@ namespace GestionCertificadosDigitales
                     throw new Exception($"La clave privada del certificado puede estar dañada o no estar incluida. Se recomienda reinstalarlo.\nCertificado: {nombreCertificado}");
                 }
 
-                // Validación de la cadena de confianza (TSL / CA) usando X509Chain
-                // Esto detecta problemas de certificados intermedios, raíz no confiable o revocación
-                X509Chain chain = new X509Chain();
-                chain.ChainPolicy.RevocationMode = X509RevocationMode.Online; // Comprobar revocación en línea
-                chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot; // Excluir la raíz en la verificación
-                chain.ChainPolicy.VerificationFlags = X509VerificationFlags.NoFlag; // Sin flags especiales
-                chain.ChainPolicy.VerificationTime = DateTime.Now; // Verificación en el momento actual
-
-                bool cadenaValida = chain.Build(certificado);
-
-                if (!cadenaValida)
-                {
-                    // Se recopilan los errores de la cadena para un mensaje descriptivo
-                    StringBuilder errores = new StringBuilder();
-                    errores.AppendLine("Errores:");
-                    foreach (X509ChainStatus status in chain.ChainStatus)
-                    {
-                        errores.AppendLine($"- {status.StatusInformation.Trim()}");
-                    }
-
-                    throw new Exception($"La cadena de confianza del certificado no es válida. Se recomienda reinstalarlo\nCertificado: {nombreCertificado}\n{errores.ToString()}"
-                    );
-                }
-
                 // Si se llega aquí, el certificado ha pasado todas las validaciones críticas
                 return certificado;
             }
